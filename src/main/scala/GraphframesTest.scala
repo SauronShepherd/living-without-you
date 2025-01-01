@@ -21,20 +21,14 @@ object GraphframesTest{
     // Create a graph using the vertices and edges
     val graph = GraphFrame(vertices, edges)
 
-    // Step 1: Filter edges with the status "Disputed"
-    val disputedEdges = graph.edges.filter(col("status") === "Disputed")
-
-    // Step 2: Extract relevant information from the disputed edges
-    val dstColRenames = Map("id" -> "dstId", "name" -> "dstName")
-    val result = disputedEdges.join(graph.vertices, disputedEdges("src") === graph.vertices("id"))
-      .join(graph.vertices.withColumnsRenamed(dstColRenames), disputedEdges("dst") === col("dstId"))
-      .select(col("name"), col("dstName"), col("amount"), col("time"))
-
-    // Step 3: Sort the extracted information by transaction time in descending order
-    val sortedResult = result.orderBy(desc("time"))
+    // Filter edges with the status "Disputed" using Motif API
+    val result = graph.find("(c)-[t]->(m)")
+      .filter("t.status = 'Disputed'")
+      .select(col("c.name"), expr("m.name as dstName"), col("t.amount"), col("t.time"))
+      .orderBy(desc("t.time"))
 
     // Print or process the sorted result
-    sortedResult.collect().foreach { row =>
+    result.collect().foreach { row =>
       println(s"Customer Name: ${row.getAs[String]("name")}, Store Name: ${row.getAs[String]("dstName")}, Amount: ${row.getAs[Double]("amount")}, Transaction Time: ${row.getAs[String]("time")}")
     }
 
